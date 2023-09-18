@@ -3,7 +3,9 @@
 This is a controller for 12V Danfoss and Secomp fridges. The compressors on these fridges are
 variable speed and typically have switch based external temperature sensors. In a low power
 environment running off 12v there are a few problems, which can be addressed by buying one
-of the top end control heads. The code and hardware here, does the same, or aims to.
+of the top end control heads. Some of documentation for the newer compressors indicate that
+the RPM and minimum battery voltages have more control, but the BD35 and BD50 compressors
+while being variable speed have unsuitable battery shutoff voltages.
 
 # Why ?
 
@@ -11,7 +13,7 @@ I've gone through 2x 300 Lead Acid battery sets due to the behavior of the Fridg
 
 # Fridge hardware
 
-The compressor is a variable speed motor that runs at between 2000 and 3500 RPM. In basic setups
+The compressor (BD35) is a variable speed motor that runs at between 2000 and 3500 RPM. In basic setups
 the speed is controlled current from one of the pins on the control unit of between 2mA (3500rpm) and 5mA (2000rpm).
 Typically manufacturers add a fixed resistor to achieve this, loosing the benefits of variable speed control,
 which allow these compressors to use significantly less energy than the fixed speed counterparts.
@@ -49,7 +51,21 @@ transition into the charging state when the minimum charging voltage is exceeded
 
 Voltages are measured with the ESP32 ADC via a voltage divider that keeps the ADC voltage < 2.5v and so in its linear range. (> 2.5 ESP32s ADC becomes quite non linear). The PWM output uses the wonderfully simple ESP32 led control API. For atMega and atTiny versions see the secoppower.cpp files for those chips. (That code has never been run so expect bugs in it).
 
-The compressor RPM can be varied depending on the difference between measured temperature and target temperature. Temperature is measured over 1wire sensors which are so slow, but fast enough for this use.
+The compressor RPM can be varied depending on the difference between measured temperature and target temperature. Temperature is measured over 1wire sensors which are so slow, but fast enough for this use. 1Wire measurements are using asynchronous requests.
+
+# Compressor control.
+
+Fridge circuits work by compressing the refrigerant, cooling it into a liquid form in a condensor, storing the refrigerant liquid in a reservoir. The liquid escapes through a metering device which lowers the pressure of the liquid. On entering the evaporator the liquid boils removing heat from the fridge. The gas returns to the compressor which re-compresses the gas back into a liquid.  Marine fridges tend to use a long capillary tube as the metering device, which is static. The reservwoir is generally quite small. Because the metering is fixed, there is little point in running the compressor at full speed exit temperature of the evaporator is low enough to generate frost, ie < 0C as that will only cool the atomsphere. So a temperature sensor at the exit of the evaporator could be used to control the speed of the compressor to ensure that only enough energy to is put into the compressor to cool the evaporator and not the pipes outside the fridge.  
+
+## Temperature sensor locations.
+
+* Input side of the evaporator, probably central - this is the default location on standard installation.
+* Output side if the evaporator - outside the fridge but as far a away from the compressor as possible.
+* Interior of fridge.
+
+## Control mechanism.
+
+Control of RPM should be based on the relative temperatures of the evaporator at both ends. The on and off temperature of the fridge should depend on the battery state, with the fridge being off if the voltage falls too low.
 
 # Building
 
