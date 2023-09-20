@@ -154,7 +154,6 @@ DisplayPage * LogoDisplayPage::update(ButtonPress bp, Adafruit_SSD1306 * display
     unsigned long now = millis();
     if ( bp == FORCE_UPDATE ||  now - last > displayUpdate ) {
         last = now;
-        Serial.println("Logo display");
         display->clearDisplay();
         display->drawBitmap((display->width() - spash12864_width) / 2, (display->height() - spash12864_height) / 2,
                    spash12864_data, spash12864_width, spash12864_height, 1);
@@ -169,7 +168,6 @@ DisplayPage * StatsDisplayPage::update(ButtonPress bp, Adafruit_SSD1306 * displa
     unsigned long now = millis();
     if ( bp == FORCE_UPDATE || bp == PRESS || now - last > displayUpdate ) {
         last = now;
-        Serial.println("State display");
         display->clearDisplay();
         display->setTextColor(SSD1306_WHITE); // Draw white text
         switch(subPage) {
@@ -226,7 +224,6 @@ DisplayPage * ConfigSettingsPage::update(ButtonPress bp, Adafruit_SSD1306 * disp
     unsigned long now = millis();
     if ( bp == FORCE_UPDATE || now - last > displayUpdate ) {
         last = now;
-        Serial.println("ConifgSettings display");
         display->clearDisplay();
         display->setTextColor(SSD1306_WHITE); // Draw white text
         switch(subPage) {

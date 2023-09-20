@@ -14,7 +14,7 @@ public:
     void getTemperatures();
     float readCelciusFromSensor(uint8_t channel);
     bool checkStatus();
-
+    bool diagnosticsEnabled = false;
 private:
     OneWire oneWire;
     DallasTemperature ds18B20;

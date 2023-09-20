@@ -38,7 +38,6 @@ void TemperatureSensors::begin() {
 
 
 void TemperatureSensors::getTemperatures() {
-    Serial.print("getTemperatures: ");
     /*
     for (int i = 0; i < 3; i++) {
 
@@ -53,16 +52,22 @@ void TemperatureSensors::getTemperatures() {
     lastRequest = millis();
     conversionCompleteAt = lastRequest;
     ds18B20.requestTemperatures();
-    Serial.print(" tp:");            
-    Serial.println(millis()-lastRequest);
+    if ( diagnosticsEnabled ) {
+        Serial.print("getTemperatures: ");
+        Serial.print(" tp:");            
+        Serial.println(millis()-lastRequest);
+
+    }
 }
 
 bool TemperatureSensors::checkStatus() {
     if ( ds18B20.isConversionComplete() ) {
         if ( conversionCompleteAt == lastRequest ) {
             conversionCompleteAt = millis();
-            Serial.print("Temp ready ms:");
-            Serial.println(conversionCompleteAt-lastRequest);
+            if ( diagnosticsEnabled ) {
+                Serial.print("Temp ready ms:");
+                Serial.println(conversionCompleteAt-lastRequest);                
+            }
         }
         return true;
     }
@@ -73,12 +78,15 @@ bool TemperatureSensors::checkStatus() {
                     
 float TemperatureSensors::readCelciusFromSensor(uint8_t channel) {
     float t = ds18B20.getTempC(sensors[channel]);
-    Serial.print("c:");
-    Serial.print(channel);
-    Serial.print(" ms:");
-    Serial.print(millis()-lastRequest);
-    Serial.print(" t:");
-    Serial.println(t);
+    if ( diagnosticsEnabled ) {
+        Serial.print("Temp ch:");
+        Serial.print(channel);
+        Serial.print(" ms:");
+        Serial.print(millis()-lastRequest);
+        Serial.print(" t:");
+        Serial.println(t);
+
+    }
     return t;  // read temperature in °C
 
 }

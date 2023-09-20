@@ -1,5 +1,59 @@
 #include <config.h>
-#include <EEPROM.h>
+#include <Preferences.h>
+
+void dumpBytes(Config *configBlock) {
+    uint8_t *b = (uint8_t *) &configBlock;
+    for (int i = 0; i < sizeof(Config); i++) {
+        if ( b[i] < 16) {
+            Serial.print("0");
+        }
+        Serial.print(b[i], HEX);
+    }
+    Serial.println();
+} 
+void dumpText(Config *config) {
+    Serial.print("config->turnOnTemperature[0] "); Serial.println(config->turnOnTemperature[0]);
+    Serial.print("config->turnOnTemperature[1] "); Serial.println(config->turnOnTemperature[1]);
+    Serial.print("config->turnOnTemperature[2] "); Serial.println(config->turnOnTemperature[2]);
+    Serial.print("config->turnOffTemperature[0] "); Serial.println(config->turnOffTemperature[0]);
+    Serial.print("config->turnOffTemperature[1] "); Serial.println(config->turnOffTemperature[1]);
+    Serial.print("config->turnOffTemperature[2] "); Serial.println(config->turnOffTemperature[2]);
+    Serial.print("config->compressorRPM[0] "); Serial.println(config->compressorRPM[0]);
+    Serial.print("config->compressorRPM[1] "); Serial.println(config->compressorRPM[1]);
+    Serial.print("config->compressorRPM[2] "); Serial.println(config->compressorRPM[2]);
+    Serial.print("config->minimumChargingVoltage "); Serial.println(config->minimumChargingVoltage);
+    Serial.print("config->minimumBatteryVoltage "); Serial.println(config->minimumBatteryVoltage);
+    Serial.print("config->dutyOff "); Serial.println(config->dutyOff);
+    Serial.print("config->duty2000 "); Serial.println(config->duty2000);
+    Serial.print("config->duty3500 "); Serial.println(config->duty3500);
+    Serial.print("config->compressorStartDelay "); Serial.println(config->compressorStartDelay);
+    Serial.print("config->targetEvaporatorTemperature "); Serial.println(config->targetEvaporatorTemperature);
+    Serial.print("config->highEvaporatorTemperature "); Serial.println(config->highEvaporatorTemperature);
+    Serial.print("config->minEvaporatorTemperature "); Serial.println(config->minEvaporatorTemperature);
+    Serial.print("config->minDischargeTemperature "); Serial.println(config->minDischargeTemperature);
+}
+
+void zero(Config *config) {
+    config->turnOnTemperature[0] = 0.0f;
+    config->turnOnTemperature[1] = 0.0f;
+    config->turnOnTemperature[2] = 0.0f;
+    config->turnOffTemperature[0] = 0.0f;
+    config->turnOffTemperature[1] = 0.0f;
+    config->turnOffTemperature[2] = 0.0f;
+    config->compressorRPM[0] = 0;
+    config->compressorRPM[1] = 0;
+    config->compressorRPM[2] = 0;
+    config->minimumChargingVoltage = 0.0;
+    config->minimumBatteryVoltage = 0.0;
+    config->dutyOff = 0;
+    config->duty2000 = 0;
+    config->duty3500 = 0;
+    config->compressorStartDelay = 0;
+    config->targetEvaporatorTemperature = 0;
+    config->highEvaporatorTemperature = 0;
+    config->minEvaporatorTemperature = 0.0;
+    config->minDischargeTemperature  = 0.0;
+}
 
 
 ConfigSettings::ConfigSettings() {
@@ -7,45 +61,87 @@ ConfigSettings::ConfigSettings() {
 }
 
 bool ConfigSettings::begin() {
-    return EEPROM.begin(sizeof(Config));
+    return true; 
 }
 bool ConfigSettings::load() {
-    Config epromConfig;
-    EEPROM.readBytes(0, &epromConfig, sizeof(Config));
-    uint16_t crcv =  modbus_crc16((uint8_t *) &(epromConfig), sizeof(Config)-2);
-    if ( crcv == epromConfig.crc ) {
-        memcpy(&config, &epromConfig , sizeof(Config));
+    preferences.begin("fridge", true);
+    size_t configLen = preferences.getBytesLength("config");
+    if ( configLen == sizeof(Config) ) {
+        Config prefsConfig;
+
+        preferences.getBytes("config", &prefsConfig, configLen);
+        uint16_t crcv =  modbus_crc16((uint8_t *) &(prefsConfig), sizeof(Config)-2);
+        if ( crcv == prefsConfig.crc ) {
+            memcpy(&config, &prefsConfig , sizeof(Config));
+            Serial.print("CRC Check read:");
+            Serial.print(prefsConfig.crc);
+            Serial.print(" checked:");
+            Serial.print(crcv);
+            Serial.print(" using:");
+            Serial.println(config.crc);
+            preferences.end();
+            return true;
+        }
         Serial.print("CRC Check read:");
-        Serial.print(epromConfig.crc);
+        Serial.print(prefsConfig.crc);
         Serial.print(" checked:");
-        Serial.print(crcv);
-        Serial.print(" using:");
-        Serial.println(config.crc);
-        return true;
+        Serial.println(crcv);
+        Serial.println("Stored preferences crc mismatch");
+    } else {
+        Serial.println("Stored preferences size mismatch");
     }
-    Serial.print("CRC Check read:");
-    Serial.print(epromConfig.crc);
-    Serial.print(" checked:");
-    Serial.println(crcv);
+    preferences.end();
     return false;
 }
 bool ConfigSettings::save() {
-    config.crc =  modbus_crc16((uint8_t *)&config, sizeof(Config)-2);
-    EEPROM.writeBytes(0, &config, sizeof(Config));
-    EEPROM.commit();
+    preferences.begin("fridge", false);
+
+    uint8_t epromSize = sizeof(Config);
+    if ( diagnosticsEnabled ) {
+        Serial.print("Eprom Size:");Serial.println(epromSize);
+        Serial.print("Before Write:");
+        dumpText(&config);
+        dumpBytes(&config);        
+    }
+    config.crc =  modbus_crc16((uint8_t *)&config, epromSize-2);
+    preferences.putBytes("config", (uint8_t *)&config, epromSize);
+    if ( diagnosticsEnabled ) {
+        Serial.print("After Write :");
+        dumpBytes(&config);
+    }
+
 
     Config epromConfig;
-    EEPROM.readBytes(0, &epromConfig, sizeof(Config));
-    uint16_t crcv =  modbus_crc16((uint8_t *) &(epromConfig), sizeof(Config)-2);
-    Serial.print("CRC Check wrote:");
-    Serial.print(config.crc);
-    Serial.print(" read:");
-    Serial.print(epromConfig.crc);
-    Serial.print(" checked:");
-    Serial.println(crcv);
+    if ( diagnosticsEnabled ) {
+        zero(&epromConfig);
+        dumpText(&epromConfig);
+        Serial.print("Test (0) :");
+        Serial.println(epromConfig.compressorStartDelay);
+        Serial.print("Before Read :");
+        dumpBytes(&epromConfig);
+    }
+    preferences.getBytes("config", (uint8_t *)&epromConfig, epromSize);
+    if ( diagnosticsEnabled ) {
+    Serial.print("After Read  :");
+        dumpBytes(&epromConfig);
+        dumpText(&epromConfig);
+
+    }
+    uint16_t crcv =  modbus_crc16((uint8_t *) &(epromConfig), epromSize-2);
+    if ( diagnosticsEnabled ) {
+        Serial.print("CRC Check wrote:");
+        Serial.print(config.crc);
+        Serial.print(" read:");
+        Serial.print(epromConfig.crc);
+        Serial.print(" checked:");
+        Serial.println(crcv);
+        
+    }
+    preferences.end();
     return (crcv == config.crc);
 
 }
+
 
 void ConfigSettings::factoryReset() {
     config.turnOnTemperature[0] = 3.0f;
@@ -62,7 +158,14 @@ void ConfigSettings::factoryReset() {
     config.dutyOff = 0;
     config.duty2000 = 10;
     config.duty3500 = 1024;
+    config.compressorStartDelay = 240;
+    config.targetEvaporatorTemperature = 1.0;
+    config.highEvaporatorTemperature = 8.0;
+    config.minEvaporatorTemperature = 0.0;
+    config.minDischargeTemperature  = 0.0;
+
 };
+
 
 
 

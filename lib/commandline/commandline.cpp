@@ -1,22 +1,28 @@
 #include "commandline.h"
 
 
-const char menuOptions_0[] = "Charging - Temp On";
-const char menuOptions_1[] = "Charging - Temp Off";
+const char menuOptions_0[] = "Charging - Temp On (C)";
+const char menuOptions_1[] = "Charging - Temp Off (C)";
 const char menuOptions_2[] = "Charging - Compressor RPM";
-const char menuOptions_3[] = "Normal   - Temp On";
-const char menuOptions_4[] = "Normal   - Temp Off";
+const char menuOptions_3[] = "Normal   - Temp On (C)";
+const char menuOptions_4[] = "Normal   - Temp Off (C)";
 const char menuOptions_5[] = "Normal   - Compressor RPM";
-const char menuOptions_6[] = "Low Bat  - Temp On";
-const char menuOptions_7[] = "Low Bat  - Temp Off";
+const char menuOptions_6[] = "Low Bat  - Temp On (C)";
+const char menuOptions_7[] = "Low Bat  - Temp Off (C)";
 const char menuOptions_8[] = "Low Bat  - Compressor RPM";
 const char menuOptions_9[] = "Charging min V";
 const char menuOptions_10[] = "Normal min V";
 const char menuOptions_11[] = "Duty Cycle - Off";
 const char menuOptions_12[] = "Duty Cycle - 2000";
 const char menuOptions_13[] = "Duty Cycle - 3500";
-const char menuOptions_14[] = "Save settings and restart";
-const char menuOptions_15[] = "Quit and restart";
+const char menuOptions_14[] = "Compressor Start Delay (s)";
+const char menuOptions_15[] = "Target Evaporator Temperature (C)";
+const char menuOptions_16[] = "High Evaporator Temperature (C)";
+const char menuOptions_17[] = "Min Evaporator Temperature (C)";
+const char menuOptions_18[] = "Min Discharge Temperature (C)";
+
+const char menuOptions_19[] = "Save settings and restart";
+const char menuOptions_20[] = "Quit and restart";
 
 const char * const menuOptions[] = {
     menuOptions_0,
@@ -34,19 +40,18 @@ const char * const menuOptions[] = {
     menuOptions_12,
     menuOptions_13,
     menuOptions_14,
-    menuOptions_15
+    menuOptions_15,
+    menuOptions_16,
+    menuOptions_17,
+    menuOptions_18,
+    menuOptions_19,
+    menuOptions_20
 };
-const char menuKey[] = "0123456789abcdSQ";
+const char menuKey[] = "0123456789abcdefghiSQ";
 
 
 void CommandLine::begin() {
-    if ( !settings->begin() ) {
-        Serial.println("Failed to initialize EEPROM");
-        delay(1000);
-        ESP.restart();
-    } else {
-        Serial.println("EEPROM initialized");
-    }
+    settings->begin();
     loadSettings();
 };
 
@@ -158,7 +163,13 @@ void CommandLine::printAllStatus() {
     printStatus(11,settings->config.dutyOff);
     printStatus(12,settings->config.duty2000);
     printStatus(13,settings->config.duty3500);
+    printStatus(14,settings->config.compressorStartDelay);
+    printStatus(15,settings->config.targetEvaporatorTemperature);
+    printStatus(16,settings->config.highEvaporatorTemperature);
+    printStatus(17,settings->config.minEvaporatorTemperature);
+    printStatus(18,settings->config.minDischargeTemperature);
 }
+
 
 void CommandLine::doCalibration() {
     int16_t dutyCycle = 0;
@@ -210,8 +221,8 @@ void CommandLine::doSetup() {
         io->println(F("Setup Menu"));
         printAllStatus();
 
-        printHeader(14,0);io->println("");
-        printHeader(15,0);io->println("");
+        printHeader(19,0);io->println("");
+        printHeader(20,0);io->println("");
 
         int option = io->read();
 
@@ -249,7 +260,15 @@ void CommandLine::doSetup() {
             case 11: read(&(settings->config.dutyOff),0,1024); break;
             case 12: read(&(settings->config.duty2000),0,1024); break;
             case 13: read(&(settings->config.duty3500),0,1024); break;
-            case 14:
+            case 14: read(&(settings->config.compressorStartDelay),0,600); break;
+            case 15: read(&(settings->config.targetEvaporatorTemperature),-10.0,20.0); break;
+            case 16: read(&(settings->config.highEvaporatorTemperature),-10.0,20.0); break;
+            case 17: read(&(settings->config.minEvaporatorTemperature),-10.0,20.0); break;
+            case 18: read(&(settings->config.minDischargeTemperature),-10.0,20.0); break;
+
+
+
+            case 19:
                 if ( settings->save() ) {
                     io->println("Settings saved - rebooting");
                     doReset();
@@ -258,7 +277,7 @@ void CommandLine::doSetup() {
                 }
 
                 break;
-            case 15:
+            case 20:
                 io->println("Exit setup");
                 performingSetup = false;
                 break;

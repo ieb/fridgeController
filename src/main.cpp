@@ -146,17 +146,17 @@ void showStatus() {
 int16_t calculateRPM(float *temperatures) {
     unsigned long now = millis();
     if ( compressorOn 
-        && ((now - compressorTurnedOnAt) > 120000)
-        && ((now - compressorTurnedOffAt) > 240000)  ) {
-        if (temperatures[EVAPORATOR_SENSOR] <= 0 
-            || temperatures[DISCHARGE_SENSOR] <= 0 
-            || temperatures[BOX_SENSOR] <= 0) {
+        && ((now - compressorTurnedOnAt) > settings.config.compressorStartDelay*1000)
+        && ((now - compressorTurnedOffAt) > settings.config.compressorStartDelay*2000)  ) {
+        if (temperatures[EVAPORATOR_SENSOR] <= settings.config.minEvaporatorTemperature
+            || temperatures[DISCHARGE_SENSOR] <= settings.config.minDischargeTemperature ) {
             // not a freezer
             return 0;
-        } else if (temperatures[EVAPORATOR_SENSOR] <= 1.0 ) {
+        } else if (temperatures[EVAPORATOR_SENSOR] <= settings.config.targetEvaporatorTemperature ) {
             return 2000;
         } else {
-            return map(temperatures[EVAPORATOR_SENSOR], 1.0, 8.0, 2000, 3500); 
+            return map(temperatures[EVAPORATOR_SENSOR], settings.config.targetEvaporatorTemperature, 
+                settings.config.highEvaporatorTemperature, 2000, 3500); 
         }
     }
     return 0;
@@ -247,8 +247,6 @@ void checkStatus() {
             }        
         }
         lcdDisplay.update(voltage,  temperatures, rpm, state);
-        Serial.print("checkStatus() t:");
-        Serial.println(millis()-now);
 
     }
 }
@@ -286,8 +284,6 @@ void flashLed() {
         if ( cycle > 10 ) {
             cycle = 0;
         }
-        Serial.print("flashLed() t:");
-        Serial.println(millis()-now);
     }
 
 }
@@ -297,6 +293,8 @@ void loop() {
     flashLed();
     lcdDisplay.update();
     diagnosticsEnabled = commandLine.checkCommand();
+    temperatureSensors.diagnosticsEnabled = diagnosticsEnabled;
+    settings.diagnosticsEnabled = diagnosticsEnabled;
 }
 
 
