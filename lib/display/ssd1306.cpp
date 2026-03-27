@@ -37,8 +37,8 @@ void i2cScan() {
 
 
 void LCDDisplay::begin() {
-    pinMode(BTN_PIN, INPUT);  
-  Wire.begin(21,22);
+    pinMode(BTN_PIN, INPUT_PULLUP);  
+  Wire.begin(I2C_SDA_PIN,I2C_SCL_PIN);
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display.begin(SSD1306_SWITCHCAPVCC, OLED_SCREEN_ADDRESS)) {
     i2cScan();

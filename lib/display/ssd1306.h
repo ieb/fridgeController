@@ -38,7 +38,7 @@ typedef enum DisplayState {
 
 class DisplayPage {
     public:
-        DisplayPage() {
+         DisplayPage() {
             nextPage = this;
         };
         void setNextPage(DisplayPage *nextPage) {
@@ -48,7 +48,8 @@ class DisplayPage {
             this->hold5sPage = hold5sPage;
         };
         DisplayPage * processPress(ButtonPress bp, Adafruit_SSD1306 * display);
-        virtual DisplayPage * update(ButtonPress press, Adafruit_SSD1306 * display);
+        virtual DisplayPage * update(ButtonPress press, Adafruit_SSD1306 * display) = 0;
+        virtual ~DisplayPage() noexcept = default;
 
     protected:
         unsigned long displayUpdate = 1000;
@@ -64,7 +65,8 @@ class LogoDisplayPage: public DisplayPage {
         LogoDisplayPage(){
             displayUpdate = 60000;
         };
-        DisplayPage * update(ButtonPress press, Adafruit_SSD1306 * display);
+        DisplayPage * update(ButtonPress press, Adafruit_SSD1306 * display) override;
+        ~LogoDisplayPage() override = default;
 };
 
 
@@ -77,8 +79,9 @@ class StatsDisplayPage: public DisplayPage {
         void setConfigSettings(ConfigSettings * settings) {
             this->settings = settings;
         }
-        DisplayPage * update(ButtonPress press, Adafruit_SSD1306 * display);
+        DisplayPage * update(ButtonPress press, Adafruit_SSD1306 * display) override;
         void update(float voltage, float *temperatures, int16_t rpm, int8_t state);
+        ~StatsDisplayPage() override = default;
     private:
         ConfigSettings *settings;
         float voltage = 0.0;
@@ -96,7 +99,8 @@ class ConfigSettingsPage: public DisplayPage {
         void setConfigSettings(ConfigSettings * settings) {
             this->settings = settings;
         }
-        DisplayPage * update(ButtonPress press, Adafruit_SSD1306 * display);
+        DisplayPage * update(ButtonPress press, Adafruit_SSD1306 * display) override;
+        ~ConfigSettingsPage() override = default;
     private:
         ConfigSettings *settings;
 };
